@@ -1,0 +1,28 @@
+[project]
+name = "yeardream2026-may"
+version = "0.1.0"
+description = "Python 3.12 데이터 분석 개발 환경"
+requires-python = ">=3.12"
+ 
+# ── 데이터 분석 필수 라이브러리 ─────────────────────────────────────────────
+dependencies = [
+    "numpy",
+    "pandas",
+    "matplotlib",
+    "seaborn",
+    "plotly",
+    "scipy",
+    "scikit-learn",
+    "statsmodels",
+    "pyarrow",
+    "openpyxl",
+    "xlrd",
+]
+ 
+# ── 개발 도구 ────────────────────────────────────────────────────────────────
+[dependency-groups]
+dev = [
+    "jupyterlab",
+    "ipykernel",
+]
+ 
