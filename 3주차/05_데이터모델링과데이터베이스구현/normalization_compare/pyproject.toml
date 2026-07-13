@@ -1,0 +1,12 @@
+[project]
+name = "normalization-compare"
+version = "0.2.0"
+description = "정규화 4단계 비교 Streamlit 시연 (학생·수강 예제)"
+requires-python = ">=3.11"
+dependencies = [
+    "streamlit>=1.40.0",
+    "pandas>=2.0.0",
+]
+
+[tool.uv]
+package = false

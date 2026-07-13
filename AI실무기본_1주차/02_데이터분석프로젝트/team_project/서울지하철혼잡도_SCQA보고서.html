@@ -1,0 +1,1228 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>서울 지하철 혼잡도 SCQA 분석 보고서 — 2026</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+
+  :root {
+    --l1: #263C96;
+    --l2: #33A23D;
+    --l3: #FE5B10;
+    --l4: #00A5DE;
+    --l5: #996CAC;
+    --l7: #747F00;
+    --l8: #EA545D;
+    --l9: #BDB092;
+    --bg: #F4F5F7;
+    --surface: #FFFFFF;
+    --text: #111827;
+    --muted: #6B7280;
+    --border: #E5E7EB;
+    --red-alert: #DC2626;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Noto Sans KR', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+  }
+
+  /* ─── HERO ─── */
+  .hero {
+    background: var(--l1);
+    color: white;
+    padding: 80px 60px 60px;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: -80px; right: -80px;
+    width: 400px; height: 400px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.04);
+  }
+  .hero::after {
+    content: '';
+    position: absolute;
+    bottom: -120px; left: 30%;
+    width: 600px; height: 300px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.03);
+  }
+  .hero-meta {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 12px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.55);
+    margin-bottom: 20px;
+  }
+  .hero h1 {
+    font-size: clamp(32px, 5vw, 58px);
+    font-weight: 900;
+    line-height: 1.1;
+    margin-bottom: 16px;
+    letter-spacing: -1px;
+  }
+  .hero h1 em {
+    font-style: normal;
+    color: #93C5FD;
+  }
+  .hero-sub {
+    font-size: 16px;
+    color: rgba(255,255,255,0.7);
+    max-width: 600px;
+    margin-bottom: 48px;
+  }
+  .hero-stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 2px;
+    max-width: 900px;
+  }
+  .hero-stat {
+    background: rgba(255,255,255,0.07);
+    padding: 20px 24px;
+    border-left: 3px solid rgba(255,255,255,0.15);
+  }
+  .hero-stat:first-child { border-left: 3px solid #93C5FD; }
+  .hero-stat .num {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 28px;
+    font-weight: 700;
+    color: white;
+    display: block;
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+  .hero-stat .label {
+    font-size: 11px;
+    color: rgba(255,255,255,0.5);
+    letter-spacing: 0.5px;
+  }
+
+  /* ─── LINE TICKER ─── */
+  .line-ticker {
+    background: white;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    gap: 0;
+    overflow-x: auto;
+  }
+  .line-tag {
+    padding: 10px 18px;
+    font-size: 12px;
+    font-weight: 700;
+    white-space: nowrap;
+    color: white;
+    letter-spacing: 0.5px;
+  }
+
+  /* ─── CONTAINER ─── */
+  .container { max-width: 1100px; margin: 0 auto; padding: 0 40px; }
+
+  /* ─── SECTION ─── */
+  section { padding: 64px 0; }
+  section + section { border-top: 1px solid var(--border); }
+
+  .section-label {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .section-title {
+    font-size: 30px;
+    font-weight: 900;
+    line-height: 1.2;
+    margin-bottom: 8px;
+    letter-spacing: -0.5px;
+  }
+  .section-desc {
+    font-size: 15px;
+    color: var(--muted);
+    max-width: 640px;
+    margin-bottom: 40px;
+  }
+
+  /* ─── SCQA BLOCKS ─── */
+  .scqa-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  .scqa-card {
+    background: white;
+    border-radius: 4px;
+    padding: 32px;
+    border-top: 4px solid var(--border);
+    position: relative;
+  }
+  .scqa-card.S { border-top-color: var(--l4); }
+  .scqa-card.C { border-top-color: var(--l8); }
+  .scqa-card.Q { border-top-color: var(--l3); }
+  .scqa-card.A { border-top-color: var(--l2); }
+  .scqa-letter {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 64px;
+    font-weight: 700;
+    line-height: 1;
+    opacity: 0.07;
+    position: absolute;
+    right: 24px;
+    top: 16px;
+  }
+  .scqa-card h3 {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 12px;
+  }
+  .scqa-card p {
+    font-size: 15px;
+    line-height: 1.7;
+    color: #374151;
+  }
+  .scqa-card ul {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 12px;
+  }
+  .scqa-card li {
+    font-size: 14px;
+    color: #374151;
+    padding-left: 16px;
+    position: relative;
+    line-height: 1.6;
+  }
+  .scqa-card li::before {
+    content: '—';
+    position: absolute;
+    left: 0;
+    color: var(--muted);
+    font-size: 12px;
+  }
+  .highlight-q {
+    background: #FFF7ED;
+    border-left: 4px solid var(--l3);
+    padding: 20px 24px;
+    border-radius: 0 4px 4px 0;
+    font-size: 16px;
+    font-weight: 700;
+    color: #92400E;
+    line-height: 1.5;
+  }
+
+  /* ─── TREND CHART ─── */
+  .trend-wrap {
+    background: white;
+    border-radius: 4px;
+    padding: 32px;
+    margin-bottom: 16px;
+  }
+  .trend-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--muted);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 24px;
+  }
+  .bar-chart {
+    display: flex;
+    align-items: flex-end;
+    gap: 6px;
+    height: 140px;
+  }
+  .bar-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    flex: 1;
+  }
+  .bar {
+    width: 100%;
+    border-radius: 2px 2px 0 0;
+    transition: opacity 0.2s;
+    cursor: default;
+    position: relative;
+  }
+  .bar:hover { opacity: 0.8; }
+  .bar-label {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 10px;
+    color: var(--muted);
+    font-weight: 500;
+  }
+  .bar-val {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 9px;
+    color: var(--muted);
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    white-space: nowrap;
+  }
+
+  /* ─── TOP 5 ─── */
+  .top5-list { display: flex; flex-direction: column; gap: 16px; }
+  .top5-item {
+    background: white;
+    border-radius: 4px;
+    padding: 28px 32px;
+    display: grid;
+    grid-template-columns: 48px 1fr auto;
+    gap: 24px;
+    align-items: start;
+    border-left: 5px solid;
+    position: relative;
+    overflow: hidden;
+  }
+  .top5-item::after {
+    content: '';
+    position: absolute;
+    top: 0; right: 0;
+    width: 40%;
+    height: 100%;
+    background: linear-gradient(to left, rgba(0,0,0,0.015), transparent);
+    pointer-events: none;
+  }
+  .top5-item:nth-child(1) { border-color: var(--l2); }
+  .top5-item:nth-child(2) { border-color: var(--l7); }
+  .top5-item:nth-child(3) { border-color: var(--l8); }
+  .top5-item:nth-child(4) { border-color: var(--l2); }
+  .top5-item:nth-child(5) { border-color: var(--l7); }
+
+  .top5-rank {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 38px;
+    font-weight: 700;
+    color: #E5E7EB;
+    line-height: 1;
+    padding-top: 4px;
+  }
+  .top5-body h3 {
+    font-size: 17px;
+    font-weight: 700;
+    margin-bottom: 6px;
+    line-height: 1.3;
+  }
+  .top5-meta {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+  }
+  .tag {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 2px;
+    letter-spacing: 0.3px;
+  }
+  .tag-time { background: #EFF6FF; color: #1D4ED8; }
+  .tag-dir { background: #F0FDF4; color: #15803D; }
+  .tag-line { color: white; }
+  .top5-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 4px;
+  }
+  .action-item {
+    font-size: 13px;
+    color: #4B5563;
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+  }
+  .action-icon { color: var(--muted); font-size: 11px; margin-top: 2px; flex-shrink: 0; }
+
+  .congestion-meter {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+    min-width: 120px;
+  }
+  .congestion-pct {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 36px;
+    font-weight: 700;
+    line-height: 1;
+  }
+  .congestion-label { font-size: 10px; color: var(--muted); letter-spacing: 0.5px; }
+  .meter-bar {
+    width: 100%;
+    height: 6px;
+    background: #F3F4F6;
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .meter-fill {
+    height: 100%;
+    border-radius: 3px;
+    background: var(--red-alert);
+  }
+  .alert-badge {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 8px;
+    background: #FEF2F2;
+    color: var(--red-alert);
+    border-radius: 2px;
+    letter-spacing: 0.5px;
+  }
+
+  /* ─── PEAK TABLE ─── */
+  .peak-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  .peak-card {
+    background: white;
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .peak-card-header {
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .peak-icon {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+  .peak-card-header h4 { font-size: 14px; font-weight: 700; }
+  .peak-card-header .time { font-size: 11px; color: var(--muted); }
+  .peak-table { width: 100%; border-collapse: collapse; }
+  .peak-table tr { border-top: 1px solid #F3F4F6; }
+  .peak-table tr:hover { background: #FAFAFA; }
+  .peak-table td { padding: 10px 20px; font-size: 13px; }
+  .peak-table td:last-child {
+    text-align: right;
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 600;
+    color: #111;
+  }
+  .rank-dot {
+    display: inline-block;
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    text-align: center;
+    line-height: 20px;
+    font-size: 10px;
+    font-weight: 700;
+    margin-right: 8px;
+    color: white;
+    flex-shrink: 0;
+  }
+
+  /* ─── ROADMAP ─── */
+  .roadmap { display: grid; grid-template-columns: repeat(4,1fr); gap: 0; }
+  .roadmap-phase {
+    padding: 32px 28px;
+    border-right: 1px solid var(--border);
+    position: relative;
+  }
+  .roadmap-phase:last-child { border-right: none; }
+  .roadmap-phase::before {
+    content: '';
+    position: absolute;
+    top: 32px; right: -1px;
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--border);
+    transform: translate(50%, 0);
+    z-index: 1;
+  }
+  .roadmap-phase:last-child::before { display: none; }
+  .phase-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  .phase-title {
+    font-size: 18px;
+    font-weight: 900;
+    margin-bottom: 16px;
+    line-height: 1.2;
+  }
+  .phase-items { display: flex; flex-direction: column; gap: 10px; }
+  .phase-item { font-size: 13px; color: #4B5563; line-height: 1.5; }
+  .phase-target {
+    display: inline-block;
+    margin-top: 16px;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 2px;
+    background: #F3F4F6;
+    color: #374151;
+  }
+
+  /* ─── STAKEHOLDER ─── */
+  .stakeholder-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+  .sh-card {
+    background: white;
+    border-radius: 4px;
+    padding: 28px 32px;
+    border-top: 3px solid;
+  }
+  .sh-card:nth-child(1) { border-color: var(--l1); }
+  .sh-card:nth-child(2) { border-color: var(--l3); }
+  .sh-card:nth-child(3) { border-color: var(--l8); }
+  .sh-card:nth-child(4) { border-color: var(--l2); }
+  .sh-org {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  .sh-card h3 { font-size: 17px; font-weight: 700; margin-bottom: 12px; }
+  .sh-concern {
+    font-size: 13px;
+    color: #4B5563;
+    margin-bottom: 12px;
+    line-height: 1.7;
+  }
+  .sh-keyword {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .kw {
+    font-size: 11px;
+    padding: 3px 8px;
+    background: #F9FAFB;
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    color: #6B7280;
+    font-weight: 500;
+  }
+  .sh-tip {
+    margin-top: 14px;
+    padding: 12px 14px;
+    background: #F9FAFB;
+    border-radius: 2px;
+    font-size: 12px;
+    color: #374151;
+    line-height: 1.6;
+    border-left: 3px solid;
+  }
+  .sh-card:nth-child(1) .sh-tip { border-color: var(--l1); }
+  .sh-card:nth-child(2) .sh-tip { border-color: var(--l3); }
+  .sh-card:nth-child(3) .sh-tip { border-color: var(--l8); }
+  .sh-card:nth-child(4) .sh-tip { border-color: var(--l2); }
+
+  /* ─── QA TABLE ─── */
+  .qa-list { display: flex; flex-direction: column; gap: 12px; }
+  .qa-item {
+    background: white;
+    border-radius: 4px;
+    overflow: hidden;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+  .qa-q {
+    padding: 20px 24px;
+    background: #FFFBEB;
+    border-right: 1px solid #FDE68A;
+    font-size: 14px;
+    font-weight: 600;
+    color: #92400E;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .qa-q::before {
+    content: 'Q';
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    background: #FCD34D;
+    color: #92400E;
+    padding: 2px 6px;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+  .qa-a {
+    padding: 20px 24px;
+    font-size: 13px;
+    color: #374151;
+    line-height: 1.6;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .qa-a::before {
+    content: 'A';
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    background: #D1FAE5;
+    color: #065F46;
+    padding: 2px 6px;
+    border-radius: 2px;
+    align-self: flex-start;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  /* ─── LIMIT SECTION ─── */
+  .limit-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; }
+  .limit-card {
+    background: white;
+    border-radius: 4px;
+    padding: 24px;
+    border-top: 3px solid #E5E7EB;
+  }
+  .limit-icon { font-size: 22px; margin-bottom: 12px; }
+  .limit-card h4 { font-size: 14px; font-weight: 700; margin-bottom: 8px; }
+  .limit-card p { font-size: 13px; color: var(--muted); line-height: 1.6; }
+
+  /* ─── FOOTER ─── */
+  footer {
+    background: var(--l1);
+    color: rgba(255,255,255,0.5);
+    padding: 40px 60px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+  }
+  footer strong { color: white; }
+
+  /* ─── BG SECTION ─── */
+  .bg-white { background: white; }
+  .bg-gray { background: var(--bg); }
+
+  /* ─── NUMBER HIGHLIGHT ─── */
+  .num-big {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 48px;
+    font-weight: 700;
+    line-height: 1;
+  }
+
+  /* ─── YOY BANNER ─── */
+  .yoy-banner {
+    background: linear-gradient(135deg, var(--l2), #1A7A27);
+    border-radius: 4px;
+    padding: 28px 36px;
+    display: flex;
+    align-items: center;
+    gap: 32px;
+    margin-bottom: 16px;
+    color: white;
+  }
+  .yoy-pct {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 56px;
+    font-weight: 700;
+    line-height: 1;
+    flex-shrink: 0;
+  }
+  .yoy-body h3 { font-size: 17px; font-weight: 700; margin-bottom: 6px; }
+  .yoy-body p { font-size: 14px; color: rgba(255,255,255,0.75); line-height: 1.6; }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════ HERO ═══════════════ -->
+<header class="hero">
+  <div class="hero-meta">이어드림 팀 프로젝트 · 2026.06.25 · SCQA Framework</div>
+  <h1>서울 지하철<br><em>혼잡도 분석</em> 보고서</h1>
+  <p class="hero-sub">2026년 5월 최신 카드 승하차 데이터 × 서울교통공사 혼잡도 정보를 결합한 데이터 기반 우선 개선 구간 도출</p>
+  <div class="hero-stats">
+    <div class="hero-stat">
+      <span class="num">620</span>
+      <span class="label">분석 역 수</span>
+    </div>
+    <div class="hero-stat">
+      <span class="num">147.7%</span>
+      <span class="label">최고 혼잡도 (사당 외선)</span>
+    </div>
+    <div class="hero-stat">
+      <span class="num">41.8M</span>
+      <span class="label">퇴근피크 시간당 이용자</span>
+    </div>
+    <div class="hero-stat">
+      <span class="num">+25.4%</span>
+      <span class="label">2026 YoY 증감 (1~5월)</span>
+    </div>
+  </div>
+</header>
+
+<!-- 노선 컬러 바 -->
+<div class="line-ticker">
+  <div class="line-tag" style="background:var(--l1)">1호선</div>
+  <div class="line-tag" style="background:var(--l2)">2호선</div>
+  <div class="line-tag" style="background:var(--l3)">3호선</div>
+  <div class="line-tag" style="background:var(--l4)">4호선</div>
+  <div class="line-tag" style="background:var(--l5)">5호선</div>
+  <div class="line-tag" style="background:#C0A000">6호선</div>
+  <div class="line-tag" style="background:var(--l7)">7호선</div>
+  <div class="line-tag" style="background:var(--l8)">8호선</div>
+  <div class="line-tag" style="background:#BDB092; color:#333">9호선</div>
+  <div class="line-tag" style="background:#CF9230">경부선</div>
+</div>
+
+<!-- ═══════════════ SCQA ═══════════════ -->
+<div class="bg-white">
+<section>
+<div class="container">
+  <div class="section-label" style="color:var(--l1)">분석 프레임워크</div>
+  <div class="section-title">SCQA — 무엇이 문제이고, 무엇을 해야 하는가</div>
+  <p class="section-desc">Situation → Complication → Question → Answer. 데이터에서 실행 가능한 결론을 도출하기 위한 구조적 프레임워크.</p>
+
+  <div class="scqa-grid">
+
+    <!-- S -->
+    <div class="scqa-card S">
+      <div class="scqa-letter">S</div>
+      <h3>Situation — 현재 상황</h3>
+      <p>서울 지하철은 2020년 코로나 저점 이후 꾸준히 회복, 2026년 1~5월 이용량은 전년 동기 대비 <strong>+25.4% 증가</strong>하며 역대 최고 수준에 근접합니다.</p>
+      <ul>
+        <li>2026-05 기준 분석 대상: <strong>620역</strong></li>
+        <li>가장 붐비는 시간대: 퇴근 <strong>18-19시</strong> (41.8M명/h)</li>
+        <li>이용 집중 노선: <strong>2호선</strong> — 전체의 약 24%</li>
+        <li>이용량 TOP 3역: 홍대입구 · 잠실 · 서울역 (각 약 500만명/월)</li>
+      </ul>
+    </div>
+
+    <!-- C -->
+    <div class="scqa-card C">
+      <div class="scqa-letter">C</div>
+      <h3>Complication — 문제의 본질</h3>
+      <p>이용량 회복은 반갑지만 혼잡은 <strong>특정 방향·구간에 집중</strong>되며, 일부 구간은 열차 정원을 상시 초과합니다.</p>
+      <ul>
+        <li>혼잡도 100% 초과 구간 다수 — 최고 <strong>147.7%</strong></li>
+        <li>같은 역이라도 <strong>방향에 따라 혼잡도 2배 이상 차이</strong></li>
+        <li>2호선 집중 의존: 전체 TOP10역 중 <strong>7개가 2호선</strong></li>
+        <li>단순 "사람 많은 역"과 "열차가 붐비는 구간"은 다름</li>
+      </ul>
+    </div>
+
+    <!-- Q -->
+    <div class="scqa-card Q" style="grid-column: 1 / -1;">
+      <div class="scqa-letter">Q</div>
+      <h3>Question — 우리가 답해야 할 질문</h3>
+      <div class="highlight-q">
+        "피크시간대 <em>특정 방향·구간</em>의 정원 초과 혼잡을 줄이기 위해,<br>
+        <em>어느 구간부터, 무엇을</em> 먼저 해야 하는가?"
+      </div>
+    </div>
+
+    <!-- A -->
+    <div class="scqa-card A" style="grid-column: 1 / -1;">
+      <div class="scqa-letter">A</div>
+      <h3>Answer — 데이터 기반 우선 개선안</h3>
+      <p>단순 이용량 순위가 아닌 <strong>혼잡도(%) 기준 정원 초과 구간·방향·시간대</strong>를 우선합니다. → TOP 5 개선 구간 상세는 아래 참조.</p>
+      <ul>
+        <li><strong>#1</strong> 2호선 사당 외선 08:00~09:00 (147.7%) — 외선 집중 증회 + 칸별 분산</li>
+        <li><strong>#2</strong> 7호선 철산 상선 07:30~08:30 (147.6%) — 배차 간격 축소</li>
+        <li><strong>#3</strong> 8호선 하선 (몽촌토성·강동구청·천호) 07:30~08:30 (146.5%) — 구간 증회</li>
+        <li><strong>#4</strong> 2호선 방배·서초 내선 18:00~19:00 (143.9%) — 퇴근 증회 + 시차 출퇴근</li>
+        <li><strong>#5</strong> 7호선 군자·어린이대공원 하선 07:30~08:30 (144.2%) — 환승 동선 분리</li>
+      </ul>
+    </div>
+
+  </div>
+</div>
+</section>
+</div>
+
+<!-- ═══════════════ TREND ═══════════════ -->
+<div class="bg-gray">
+<section>
+<div class="container">
+  <div class="section-label" style="color:var(--l2)">연도별 추이</div>
+  <div class="section-title">코로나 이후 완전 회복, 2026년 급등</div>
+  <p class="section-desc">2020년 -27.6% 충격 이후 5년간 꾸준히 회복. 2026년 1~5월 누계는 전년 동기 대비 +25.4% 급증.</p>
+
+  <div class="yoy-banner">
+    <div class="yoy-pct">+25.4%</div>
+    <div class="yoy-body">
+      <h3>2026년 1~5월 YoY 증가율</h3>
+      <p>2026년 1~5월 총 이용: <strong>2,620,803,890명</strong> / 2025년 동기: 2,089,534,561명<br>
+      신규 노선 데이터 편입 효과 포함 가능 — 단순 수요 증가로만 해석 주의</p>
+    </div>
+  </div>
+
+  <div class="trend-wrap">
+    <div class="trend-title">연도별 총 이용인원 (2015~2026)</div>
+    <div class="bar-chart" id="yearChart"></div>
+  </div>
+</div>
+</section>
+</div>
+
+<!-- ═══════════════ PEAK TABLES ═══════════════ -->
+<div class="bg-white">
+<section>
+<div class="container">
+  <div class="section-label" style="color:var(--l3)">피크 분석</div>
+  <div class="section-title">출퇴근 피크, 어디가 가장 붐비나</div>
+  <p class="section-desc">2026년 5월 기준. 출근(08-09시)과 퇴근(18-19시)의 혼잡 역이 상당 부분 다름 — 방향을 무시한 역 단위 대책은 효과 절반.</p>
+
+  <div class="peak-grid">
+    <!-- 퇴근 -->
+    <div class="peak-card">
+      <div class="peak-card-header" style="background:#FEF2F2; border-bottom:1px solid #FEE2E2;">
+        <div class="peak-icon" style="background:#FEE2E2;">🌇</div>
+        <div>
+          <h4 style="color:#991B1B">퇴근 피크 TOP 10</h4>
+          <div class="time" style="color:#B91C1C">18시 ~ 19시</div>
+        </div>
+      </div>
+      <table class="peak-table">
+        <tr><td><span class="rank-dot" style="background:var(--l8)">1</span>2호선 잠실</td><td>478,030명</td></tr>
+        <tr><td><span class="rank-dot" style="background:var(--l8)">2</span>2호선 강남</td><td>472,309명</td></tr>
+        <tr><td><span class="rank-dot" style="background:var(--l8)">3</span>1호선 서울역</td><td>462,771명</td></tr>
+        <tr><td><span class="rank-dot" style="background:var(--l8)">4</span>2호선 홍대입구</td><td>461,405명</td></tr>
+        <tr><td><span class="rank-dot" style="background:#FCA5A5">5</span>2호선 성수</td><td>394,982명</td></tr>
+        <tr><td><span class="rank-dot" style="background:#FCA5A5">6</span>2호선 을지로입구</td><td>346,303명</td></tr>
+        <tr><td><span class="rank-dot" style="background:#FECACA">7</span>2호선 구로디지털단지</td><td>336,646명</td></tr>
+        <tr><td><span class="rank-dot" style="background:#FECACA">8</span>2호선 삼성(무역센터)</td><td>320,937명</td></tr>
+        <tr><td><span class="rank-dot" style="background:#FEE2E2">9</span>2호선 선릉</td><td>318,553명</td></tr>
+        <tr><td><span class="rank-dot" style="background:#FEE2E2">10</span>7호선 가산디지털단지</td><td>302,767명</td></tr>
+      </table>
+    </div>
+
+    <!-- 출근 -->
+    <div class="peak-card">
+      <div class="peak-card-header" style="background:#EFF6FF; border-bottom:1px solid #DBEAFE;">
+        <div class="peak-icon" style="background:#DBEAFE;">🌅</div>
+        <div>
+          <h4 style="color:#1E40AF">출근 피크 TOP 10</h4>
+          <div class="time" style="color:#1D4ED8">08시 ~ 09시</div>
+        </div>
+      </div>
+      <table class="peak-table">
+        <tr><td><span class="rank-dot" style="background:var(--l1)">1</span>1호선 서울역</td><td>424,211명</td></tr>
+        <tr><td><span class="rank-dot" style="background:var(--l1)">2</span>2호선 구로디지털단지</td><td>378,162명</td></tr>
+        <tr><td><span class="rank-dot" style="background:var(--l1)">3</span>7호선 가산디지털단지</td><td>366,249명</td></tr>
+        <tr><td><span class="rank-dot" style="background:#3B82F6">4</span>2호선 강남</td><td>360,628명</td></tr>
+        <tr><td><span class="rank-dot" style="background:#3B82F6">5</span>2호선 잠실</td><td>337,134명</td></tr>
+        <tr><td><span class="rank-dot" style="background:#60A5FA">6</span>2호선 역삼</td><td>335,402명</td></tr>
+        <tr><td><span class="rank-dot" style="background:#60A5FA">7</span>2호선 을지로입구</td><td>322,441명</td></tr>
+        <tr><td><span class="rank-dot" style="background:#93C5FD">8</span>2호선 신림</td><td>300,380명</td></tr>
+        <tr><td><span class="rank-dot" style="background:#93C5FD">9</span>2호선 삼성(무역센터)</td><td>300,282명</td></tr>
+        <tr><td><span class="rank-dot" style="background:#BFDBFE">10</span>5호선 광화문</td><td>264,095명</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+</section>
+</div>
+
+<!-- ═══════════════ TOP 5 ═══════════════ -->
+<div class="bg-gray">
+<section>
+<div class="container">
+  <div class="section-label" style="color:var(--l8)">혼잡도 기반 우선순위</div>
+  <div class="section-title">개선 대상 TOP 5 — 피크시간 × 방향 × 구간</div>
+  <p class="section-desc">이용량 기준이 아닌 <strong>혼잡도(%) 기준</strong>. 정원 초과 구간·방향을 우선 선정.</p>
+
+  <div class="top5-list">
+
+    <!-- 1 -->
+    <div class="top5-item">
+      <div class="top5-rank">01</div>
+      <div class="top5-body">
+        <div class="top5-meta">
+          <span class="tag tag-line" style="background:var(--l2)">2호선</span>
+          <span class="tag tag-time">08:00~09:00</span>
+          <span class="tag tag-dir">외선 방향</span>
+          <span class="tag" style="background:#FEF2F2; color:var(--red-alert)">정원 초과</span>
+        </div>
+        <h3>사당역 외선 — 평일 오전 피크</h3>
+        <div class="top5-actions">
+          <div class="action-item"><span class="action-icon">▶</span>08:00~09:00 외선 방향 집중 증회 또는 단축 운행</div>
+          <div class="action-item"><span class="action-icon">▶</span>승강장 칸별 대기열 분산 + 혼잡 칸 회피 전광판 상시 노출</div>
+          <div class="action-item"><span class="action-icon">▶</span>2·4호선 환승 동선 일방향 유도선 설치</div>
+        </div>
+      </div>
+      <div class="congestion-meter">
+        <span class="congestion-pct" style="color:var(--red-alert)">147.7%</span>
+        <span class="congestion-label">최고 혼잡도</span>
+        <div class="meter-bar"><div class="meter-fill" style="width:98.5%"></div></div>
+        <span class="congestion-label">피크 평균 144.8%</span>
+        <span class="alert-badge">정원 +47.7%</span>
+      </div>
+    </div>
+
+    <!-- 2 -->
+    <div class="top5-item">
+      <div class="top5-rank">02</div>
+      <div class="top5-body">
+        <div class="top5-meta">
+          <span class="tag tag-line" style="background:var(--l7)">7호선</span>
+          <span class="tag tag-time">07:30~08:30</span>
+          <span class="tag tag-dir">상선 방향</span>
+          <span class="tag" style="background:#FEF2F2; color:var(--red-alert)">정원 초과</span>
+        </div>
+        <h3>철산역 상선 — 평일 오전 피크</h3>
+        <div class="top5-actions">
+          <div class="action-item"><span class="action-icon">▶</span>07:30~08:30 상선 방향 배차 간격 축소</div>
+          <div class="action-item"><span class="action-icon">▶</span>버스·환승 시간표를 열차 도착 간격과 매칭해 순간 유입 완화</div>
+          <div class="action-item"><span class="action-icon">▶</span>혼잡 칸 회피 승차 위치 분산 안내</div>
+        </div>
+      </div>
+      <div class="congestion-meter">
+        <span class="congestion-pct" style="color:var(--red-alert)">147.6%</span>
+        <span class="congestion-label">최고 혼잡도</span>
+        <div class="meter-bar"><div class="meter-fill" style="width:98.4%"></div></div>
+        <span class="congestion-label">피크 평균 138.8%</span>
+        <span class="alert-badge">정원 +47.6%</span>
+      </div>
+    </div>
+
+    <!-- 3 -->
+    <div class="top5-item">
+      <div class="top5-rank">03</div>
+      <div class="top5-body">
+        <div class="top5-meta">
+          <span class="tag tag-line" style="background:var(--l8)">8호선</span>
+          <span class="tag tag-time">07:30~08:30</span>
+          <span class="tag tag-dir">하선 방향</span>
+          <span class="tag" style="background:#FEF2F2; color:var(--red-alert)">연속 구간</span>
+        </div>
+        <h3>몽촌토성 · 강동구청 · 천호 하선 — 연속 3역</h3>
+        <div class="top5-actions">
+          <div class="action-item"><span class="action-icon">▶</span>07:30~08:30 하선 방향 구간 증회 또는 예비열차 투입</div>
+          <div class="action-item"><span class="action-icon">▶</span>천호역 환승 동선 승하차 흐름 분리</div>
+          <div class="action-item"><span class="action-icon">▶</span>3개 역 동일 기준 칸별 분산 안내 통일 적용</div>
+        </div>
+      </div>
+      <div class="congestion-meter">
+        <span class="congestion-pct" style="color:var(--l8)">146.5%</span>
+        <span class="congestion-label">최고 혼잡도</span>
+        <div class="meter-bar"><div class="meter-fill" style="width:97.7%; background:var(--l8)"></div></div>
+        <span class="congestion-label">피크 평균 139.4%</span>
+        <span class="alert-badge">정원 +46.5%</span>
+      </div>
+    </div>
+
+    <!-- 4 -->
+    <div class="top5-item">
+      <div class="top5-rank">04</div>
+      <div class="top5-body">
+        <div class="top5-meta">
+          <span class="tag tag-line" style="background:var(--l2)">2호선</span>
+          <span class="tag tag-time">18:00~19:00</span>
+          <span class="tag tag-dir">내선 방향</span>
+          <span class="tag" style="background:#FEF3C7; color:#92400E">퇴근 피크</span>
+        </div>
+        <h3>방배 · 서초 내선 — 퇴근 피크</h3>
+        <div class="top5-actions">
+          <div class="action-item"><span class="action-icon">▶</span>18:00~18:30 내선 방향 집중 증회</div>
+          <div class="action-item"><span class="action-icon">▶</span>강남·역삼·선릉 기업 대상 10~20분 시차 퇴근 캠페인</div>
+          <div class="action-item"><span class="action-icon">▶</span>강남역 승강장 혼잡 시 진입 속도 조절 + 대합실 대기 유도</div>
+        </div>
+      </div>
+      <div class="congestion-meter">
+        <span class="congestion-pct" style="color:var(--l3)">143.9%</span>
+        <span class="congestion-label">최고 혼잡도</span>
+        <div class="meter-bar"><div class="meter-fill" style="width:95.9%; background:var(--l3)"></div></div>
+        <span class="congestion-label">피크 평균 125.5%</span>
+        <span class="alert-badge">정원 +43.9%</span>
+      </div>
+    </div>
+
+    <!-- 5 -->
+    <div class="top5-item">
+      <div class="top5-rank">05</div>
+      <div class="top5-body">
+        <div class="top5-meta">
+          <span class="tag tag-line" style="background:var(--l7)">7호선</span>
+          <span class="tag tag-time">07:30~08:30</span>
+          <span class="tag tag-dir">하선 방향</span>
+          <span class="tag" style="background:#F0FDF4; color:#15803D">환승 복잡</span>
+        </div>
+        <h3>군자 · 중곡 · 어린이대공원 하선</h3>
+        <div class="top5-actions">
+          <div class="action-item"><span class="action-icon">▶</span>군자역 환승 통로와 7호선 승강장 진입 동선 분리</div>
+          <div class="action-item"><span class="action-icon">▶</span>07:30~08:30 하선 방향 혼잡 칸 회피 안내</div>
+          <div class="action-item"><span class="action-icon">▶</span>중곡·어린이대공원 안전요원 배치로 무리한 탑승 억제</div>
+        </div>
+      </div>
+      <div class="congestion-meter">
+        <span class="congestion-pct" style="color:var(--l7)">144.2%</span>
+        <span class="congestion-label">최고 혼잡도</span>
+        <div class="meter-bar"><div class="meter-fill" style="width:96.1%; background:var(--l7)"></div></div>
+        <span class="congestion-label">피크 평균 135.2%</span>
+        <span class="alert-badge">정원 +44.2%</span>
+      </div>
+    </div>
+
+  </div>
+</div>
+</section>
+</div>
+
+<!-- ═══════════════ ROADMAP ═══════════════ -->
+<div class="bg-white">
+<section>
+<div class="container">
+  <div class="section-label" style="color:var(--l4)">실행 계획</div>
+  <div class="section-title">단계별 실행 로드맵</div>
+  <p class="section-desc">비용·실행 난이도 기준으로 즉시·단기·중기·장기로 구분. 비용 0원 조치 먼저.</p>
+
+  <div class="roadmap">
+    <div class="roadmap-phase" style="background:#F0FDF4;">
+      <div class="phase-label">즉시 적용</div>
+      <div class="phase-title" style="color:var(--l2)">비용 0<br>바로 시작</div>
+      <div class="phase-items">
+        <div class="phase-item">✔ 혼잡 칸 회피 전광판 안내 변경</div>
+        <div class="phase-item">✔ 승강장 대기열 칸별 분리 표시</div>
+        <div class="phase-item">✔ 환승 동선 일방향 유도 테이프</div>
+        <div class="phase-item">✔ 방송 멘트 개선 (혼잡 구간 선제 안내)</div>
+      </div>
+      <span class="phase-target">사당 · 군자 · 천호 · 강남권</span>
+    </div>
+    <div class="roadmap-phase">
+      <div class="phase-label">단기 — 3~6개월</div>
+      <div class="phase-title">배차 조정<br>안전 강화</div>
+      <div class="phase-items">
+        <div class="phase-item">· 피크 30~60분 배차 간격 축소</div>
+        <div class="phase-item">· 안전요원 집중 배치</div>
+        <div class="phase-item">· 앱 실시간 혼잡도 알림 고도화</div>
+      </div>
+      <span class="phase-target">2호선 사당·방배·서초 / 7호선 철산·군자 / 8호선 하선</span>
+    </div>
+    <div class="roadmap-phase">
+      <div class="phase-label">중기 — 6~18개월</div>
+      <div class="phase-title">구조적<br>수요 분산</div>
+      <div class="phase-items">
+        <div class="phase-item">· 단축 운행/예비열차 투입</div>
+        <div class="phase-item">· 기업·학교 시차 출퇴근 캠페인</div>
+        <div class="phase-item">· 도착역 기준 혼잡 예측 서비스</div>
+      </div>
+      <span class="phase-target">2호선 외선 오전 / 2호선 내선 퇴근 / 7호선 피크</span>
+    </div>
+    <div class="roadmap-phase">
+      <div class="phase-label">장기 — 18개월+</div>
+      <div class="phase-title">인프라<br>구조 개선</div>
+      <div class="phase-items">
+        <div class="phase-item">· 환승 통로·승강장 구조 개선</div>
+        <div class="phase-item">· 시차 이동 제도화</div>
+        <div class="phase-item">· 혼잡 실시간 모니터링 대시보드</div>
+      </div>
+      <span class="phase-target">강남권 · 군자 · 천호 · 사당</span>
+    </div>
+  </div>
+</div>
+</section>
+</div>
+
+<!-- ═══════════════ STAKEHOLDER ═══════════════ -->
+<div class="bg-gray">
+<section>
+<div class="container">
+  <div class="section-label" style="color:var(--l5)">실무자 접근 전략</div>
+  <div class="section-title">청중별 설득 언어가 다르다</div>
+  <p class="section-desc">같은 데이터도 누구에게 말하느냐에 따라 프레이밍과 핵심 메시지가 달라집니다.</p>
+
+  <div class="stakeholder-grid">
+    <div class="sh-card">
+      <div class="sh-org">서울교통공사 운영 담당</div>
+      <h3>열차 배차 · 운행 담당자</h3>
+      <div class="sh-concern">배차 다이어, 회차 구간 여유, 예비편성 보유 수에 관심. "증회하면 된다"는 주장엔 운전 시격·회차 위치 제약으로 즉시 반박.</div>
+      <div class="sh-keyword">
+        <span class="kw">배차 간격(시격)</span><span class="kw">회차역</span><span class="kw">단축 열차</span><span class="kw">예비편성 투입</span>
+      </div>
+      <div class="sh-tip" style="border-color:var(--l1)">💡 "전 구간 증회 아닌 피크 30분 <strong>특정 구간 단축 열차</strong>" 안으로 접근. 회차 가능 역 기준 제한해 제안.</div>
+    </div>
+    <div class="sh-card">
+      <div class="sh-org">서울시 도시교통실</div>
+      <h3>지자체 교통정책 담당자</h3>
+      <div class="sh-concern">시민 민원 감소, 정책 성과 가시성, 예산 당위성이 핵심. 서울교통공사와 별도 기관 — 운행 증회는 공사 소관, 캠페인·제도는 시 소관.</div>
+      <div class="sh-keyword">
+        <span class="kw">수요 분산</span><span class="kw">교통 형평성</span><span class="kw">시차 출퇴근</span><span class="kw">인센티브</span>
+      </div>
+      <div class="sh-tip" style="border-color:var(--l3)">💡 "공사 할 일 / 시가 할 일" 구분 슬라이드 1장이 핵심. 책임 범위 명확히.</div>
+    </div>
+    <div class="sh-card">
+      <div class="sh-org">기관사 · 역무 · 운전사령</div>
+      <h3>현장 철도운영 담당자</h3>
+      <div class="sh-concern">현장 안전, 무리한 탑승 통제 현실성 중시. "안전요원 배치"는 인건비·계약 문제로 즉각 반박 받음.</div>
+      <div class="sh-keyword">
+        <span class="kw">PSD 작동 지연</span><span class="kw">탑승 거부 기준</span><span class="kw">혼잡 칸 방송</span>
+      </div>
+      <div class="sh-tip" style="border-color:var(--l8)">💡 기존 전광판·방송·앱 활용 <strong>비용 0원 즉시 조치</strong>를 선 제안 → 이후 추가 인력 논의 순서.</div>
+    </div>
+    <div class="sh-card">
+      <div class="sh-org">안전본부 · 비상대응팀</div>
+      <h3>안전관리자</h3>
+      <div class="sh-concern">혼잡도 150% 초과 시 압사 사고 위험, 대피 시간, 비상 게이트 용량. "위험하다" 주장만으로는 부족 — 수치 기준 제시 필수.</div>
+      <div class="sh-keyword">
+        <span class="kw">정원 대비 탑승률</span><span class="kw">비상 대피 기준</span><span class="kw">실시간 모니터링</span>
+      </div>
+      <div class="sh-tip" style="border-color:var(--l2)">💡 혼잡도 100% 초과 구간 리스트 + "현재 실시간 모니터링 공백" 지적 → 대시보드 필요성 제기.</div>
+    </div>
+  </div>
+</div>
+</section>
+</div>
+
+<!-- ═══════════════ QA ═══════════════ -->
+<div class="bg-white">
+<section>
+<div class="container">
+  <div class="section-label" style="color:var(--l7)">반박 대응</div>
+  <div class="section-title">실무자 예상 반박 Q&amp;A</div>
+  <p class="section-desc">미리 준비한 답변이 있어야 신뢰를 얻습니다.</p>
+
+  <div class="qa-list">
+    <div class="qa-item">
+      <div class="qa-q">"데이터가 오래됐다 / 부정확하다"</div>
+      <div class="qa-a">공개 데이터 한계 인정. 내부 실측 데이터와 비교·보완 요청. 분석 방향의 유효성은 유지.</div>
+    </div>
+    <div class="qa-item">
+      <div class="qa-q">"증회는 운행 다이어 때문에 불가능하다"</div>
+      <div class="qa-a">전 구간 증회 아닌 피크 30분 특정 구간 단축 열차 투입 안으로 재제안. 회차 가능 역 기준 제한.</div>
+    </div>
+    <div class="qa-item">
+      <div class="qa-q">"안전요원 배치는 예산이 없다"</div>
+      <div class="qa-a">즉시 조치는 방송·전광판 활용이며, 안전요원은 중기 검토로 분리 제안. 비용 0원 조치 먼저.</div>
+    </div>
+    <div class="qa-item">
+      <div class="qa-q">"이미 다 알고 있는 내용이다"</div>
+      <div class="qa-a">그렇다면 현재 어떤 조치가 진행 중인지 확인 후, 미진한 부분만 보완 제안하겠다.</div>
+    </div>
+    <div class="qa-item">
+      <div class="qa-q">"우리 관할이 아니다"</div>
+      <div class="qa-a">담당 부서가 어디인지 안내 요청 — 제안 방향을 조정해 재접촉.</div>
+    </div>
+  </div>
+</div>
+</section>
+</div>
+
+<!-- ═══════════════ LIMITS ═══════════════ -->
+<div class="bg-gray">
+<section>
+<div class="container">
+  <div class="section-label" style="color:var(--muted)">분석 한계</div>
+  <div class="section-title">이 분석의 한계와 다음 단계</div>
+
+  <div class="limit-grid">
+    <div class="limit-card">
+      <div class="limit-icon">📊</div>
+      <h4>측정 단위 불일치</h4>
+      <p>시간대별 승하차 CSV는 월 누적 인원, 혼잡도 CSV는 혼잡률(%). 두 파일을 직접 곱하지 않고 보조 근거로만 결합했습니다.</p>
+    </div>
+    <div class="limit-card">
+      <div class="limit-icon">📈</div>
+      <h4>YoY 해석 주의</h4>
+      <p>2026년 +25.4% 증가는 신규 노선 데이터 편입 효과 포함 가능. 순수 수요 증가로만 해석하면 과대 해석 위험이 있습니다.</p>
+    </div>
+    <div class="limit-card">
+      <div class="limit-icon">🚉</div>
+      <h4>운영 데이터 부재</h4>
+      <p>열차 편성 수, 운전 시격, 회차 가능 위치, 역 구조 데이터 없음. 실제 증회 규모 제안은 운영팀 확인 후 가능합니다.</p>
+    </div>
+    <div class="limit-card">
+      <div class="limit-icon">🚶</div>
+      <h4>승강장·환승 통로 혼잡 미반영</h4>
+      <p>혼잡도 CSV는 열차 내 혼잡률 중심. 승강장·환승 통로의 실제 혼잡은 별도 데이터가 필요합니다.</p>
+    </div>
+    <div class="limit-card">
+      <div class="limit-icon">📅</div>
+      <h4>혼잡도 데이터 시점</h4>
+      <p>혼잡도 정보는 2026-03-31 기준. 5월 데이터와 최대 2개월 시간차 존재. 계절·이벤트 요인 영향 가능.</p>
+    </div>
+    <div class="limit-card">
+      <div class="limit-icon">🔗</div>
+      <h4>다음 단계 제안</h4>
+      <p>서울교통공사 공모전 제출, 서울시 교통 빅데이터 챌린지 참여, 열차 운행 데이터 추가 확보 후 정밀 분석 가능.</p>
+    </div>
+  </div>
+</div>
+</section>
+</div>
+
+<!-- ═══════════════ FOOTER ═══════════════ -->
+<footer>
+  <div>
+    <strong>서울 지하철 혼잡도 SCQA 분석 보고서</strong> · 이어드림 팀 프로젝트
+  </div>
+  <div>
+    데이터: 서울 열린데이터광장 · 서울교통공사 · 2026-06-25
+  </div>
+</footer>
+
+<!-- ═══════════════ JS: BAR CHART ═══════════════ -->
+<script>
+  const yearData = [
+    { year: '2015', val: 5295 }, { year: '2016', val: 5305 },
+    { year: '2017', val: 5281 }, { year: '2018', val: 5315 },
+    { year: '2019', val: 5423 }, { year: '2020', val: 3930 },
+    { year: '2021', val: 4009 }, { year: '2022', val: 4474 },
+    { year: '2023', val: 4894 }, { year: '2024', val: 5045 },
+    { year: '2025', val: 5091 }, { year: '2026*', val: 5240 }
+  ];
+
+  const maxVal = Math.max(...yearData.map(d => d.val));
+  const chart = document.getElementById('yearChart');
+
+  yearData.forEach((d, i) => {
+    const pct = (d.val / maxVal) * 100;
+    const isLow = d.year === '2020';
+    const isCurrent = d.year === '2026*';
+    const color = isLow ? '#EA545D' : isCurrent ? '#33A23D' : '#263C96';
+
+    const item = document.createElement('div');
+    item.className = 'bar-item';
+
+    const bar = document.createElement('div');
+    bar.className = 'bar';
+    bar.style.height = pct + '%';
+    bar.style.background = color;
+    bar.style.opacity = isLow ? '0.9' : '0.75';
+    bar.title = `${d.year}: ${d.val.toLocaleString()}백만명`;
+
+    const lbl = document.createElement('div');
+    lbl.className = 'bar-label';
+    lbl.textContent = d.year.replace('*','');
+    lbl.style.color = isCurrent ? '#15803D' : isLow ? '#DC2626' : '#9CA3AF';
+    lbl.style.fontWeight = (isCurrent || isLow) ? '700' : '400';
+
+    item.appendChild(bar);
+    item.appendChild(lbl);
+    chart.appendChild(item);
+  });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,10 @@
+{
+    "sqltools.connections": [
+        {
+            "previewLimit": 50,
+            "driver": "SQLite",
+            "name": "chinook",
+            "database": "C:\\yeardreamschool6th\\datasets\\chinook.db"
+        }
+    ]
+}
